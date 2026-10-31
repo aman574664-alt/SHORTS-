@@ -1,0 +1,6 @@
+const {test}=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs'),os=require('node:os'),path=require('node:path');const {Queue}=require('./core.cjs');
+function make(){return new Queue(path.join(fs.mkdtempSync(path.join(os.tmpdir(),'shorts-')),'queue.json'));}
+test('persistent queue and restart recovery',()=>{const q=make();q.state.items.push({id:'a',status:'uploading',progress:40});q.save();const r=new Queue(q.file);assert.equal(r.state.items[0].status,'pending');assert.equal(r.state.items[0].progress,40);});
+test('schedule future unique slots',()=>{const q=make();const at=q.next();assert.ok(Date.parse(at)>Date.now()+3500000);q.state.items.push({at});assert.notEqual(q.next(),at);});
+test('renames deduplicate by content',async()=>{const q=make();q.state.folder=path.dirname(q.file);const p=path.join(q.state.folder,'a.mp4');fs.writeFileSync(p,'mock video');await q.scan();q.seen.get(p).since=0;await q.scan();fs.renameSync(p,path.join(q.state.folder,'b.mp4'));await q.scan();q.seen.get(path.join(q.state.folder,'b.mp4')).since=0;await q.scan();assert.equal(q.state.items.length,1);});
+test('missed posting slot fails closed',()=>{const q=make();q.state.paused=false;q.state.items.push({audience:'no',status:'pending',at:'2020-01-01'});q.tick();assert.equal(q.state.items[0].status,'failed');});
