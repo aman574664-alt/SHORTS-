@@ -1,6 +1,6 @@
 # Shorts Studio — local Windows YouTube uploader
 
-A minimal poster-style desktop app for one YouTube channel and one watched folder. This version contains the real OAuth, upload and scheduling paths. Development checks use mocked YouTube responses; no live upload has been performed.
+A minimal poster-style desktop app for one YouTube channel and one watched folder. This version contains the real OAuth, upload and scheduling paths. Automated checks use mocked YouTube responses. An owner-authorized live test on 1 November 2026 verified Google sign-in, 10 processed uploads and 10 YouTube-accepted future public schedules spaced one minute apart. A real quota/channel limit blocked three further attempts; those remain stopped for manual retry. Actual public publication and account restrictions are controlled by YouTube.
 
 ## Open the app
 
@@ -80,3 +80,7 @@ Live Google authorization, upload, thumbnail acceptance and public publication s
 This application uses YouTube API Services. See [YouTube Terms](https://www.youtube.com/t/terms) and [Google Privacy Policy](https://policies.google.com/privacy).
 
 Local connection diagnostic: `scripts/connect-channel.cjs` uses the same encrypted Windows credential store and opens the system browser for user-completed OAuth. It never prints tokens. The optional `--login-hint` can point sign-in at an account already listed as a Google test user. `scripts/prepare-batch.cjs` requires explicit folder, audience, and public one-minute approval flags and only prepares the persistent queue; the normal app performs transfers. Do not run these helpers while the desktop app is writing its library.
+
+Read-only live verification: `scripts/check-live.cjs` reads uploaded video processing, privacy, audience and schedule status directly from YouTube. It never prints tokens or session URLs.
+
+Editing an unuploaded batch item removes it from its previous batch plan. Save and approve its new visibility explicitly; choosing Private cannot inherit an earlier batch release plan.

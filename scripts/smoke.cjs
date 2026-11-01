@@ -126,10 +126,32 @@ app.on("browser-window-created", (_, w) => {
           await run("document.body.scrollWidth<=window.innerWidth"),
           true,
         );
+        await run(
+          "document.querySelector('[data-page=queue]').click();document.getElementById('batchButton').click()",
+        );
+        assert.equal(
+          await run("document.getElementById('batchDialog').open"),
+          true,
+        );
+        assert.equal(
+          await run("document.getElementById('batchSpacing').value"),
+          "1",
+        );
+        await run("document.getElementById('batchDialog').close()");
+        const fakeVideo = path.join(temp, "selected.mp4");
+        fs.writeFileSync(fakeVideo, "synthetic local selection");
+        require("electron").dialog.showOpenDialog = async () => ({
+          canceled: false,
+          filePaths: [fakeVideo],
+        });
+        assert.equal(await run("window.api.addFiles()"), 1);
+        assert.ok(
+          (await run("window.api.state()")).manualFiles.includes(fakeVideo),
+        );
         assert.equal(errors.length, 0, errors.join("\n"));
         done = true;
         console.log(
-          "PASS: native UI, queue rendering, editor persistence, upload gate, setup navigation, six slots, Windows encryption.",
+          "PASS: native UI, queue rendering, editor persistence, upload gate, setup navigation, six slots, direct file selection, batch dialog, Windows encryption.",
         );
         app.exit(0);
       } catch (e) {

@@ -17,5 +17,5 @@ Your original videos are never deleted or moved.
 Keep all files in this application folder together.
 No Python, paid hosting, or paid AI subscription is needed.
 
-This build has been tested with mocked YouTube responses. Real sign-in/upload
-requires your own channel and an explicitly approved first live test.
+Automated checks and a live channel connection/upload test have been completed.
+Connect your own channel and approve each upload or public schedule.

@@ -446,3 +446,84 @@ test("batch waits for all private processing, then reserves public times one min
   assert.equal(recovered.state.batches[0].status, "scheduling");
   assert.equal(recovered.state.items[0].at, a.at);
 });
+
+test("definitive quota rejection before session creation is retryable, not uncertain", async () => {
+  const { q, folder, api } = setup();
+  const p = path.join(folder, "a.mp4");
+  fs.writeFileSync(p, "bytes");
+  const i = await discover(q, p);
+  approve(q, i);
+  api.initiate = async () => {
+    throw new ApiError(
+      "YouTube API quota reached.",
+      false,
+      false,
+      "quotaExceeded",
+    );
+  };
+  await q.step();
+  assert.equal(i.status, "failed");
+  assert.equal(i.initiated, false);
+  assert.equal(i.rejectionCode, "quotaExceeded");
+});
+test("explicit partial release schedules processed items and defers blocked items", async () => {
+  const { q, folder } = setup();
+  for (const [name, data] of [
+    ["a.mp4", "one"],
+    ["b.mp4", "two"],
+  ])
+    fs.writeFileSync(path.join(folder, name), data);
+  await q.scan();
+  for (const v of q.observed.values()) v.since = 0;
+  await q.scan();
+  q.state.channel = { id: "channel" };
+  q.state.liveEnabled = true;
+  const id = q.createBatch(
+    q.state.items.map((i) => i.id),
+    {
+      audience: "yes",
+      mediaReviewed: true,
+      publishConsent: true,
+      spacingMinutes: 1,
+    },
+  );
+  const [a, b] = q.state.items;
+  a.videoId = "abcdefghijk";
+  a.status = "private";
+  b.status = "failed";
+  assert.equal(q.releaseReadyBatch(id), 1);
+  assert.equal(a.status, "processing");
+  assert.equal(a.mode, "schedule");
+  assert.equal(b.status, "failed");
+  assert.notEqual(a.batchId, b.batchId);
+  assert.equal(q.state.batches.length, 2);
+});
+
+test("editing an unuploaded batch item detaches previous public consent", async () => {
+  const { q, folder } = setup();
+  const p = path.join(folder, "a.mp4");
+  fs.writeFileSync(p, "one");
+  const i = await discover(q, p);
+  q.state.channel = { id: "channel" };
+  q.state.liveEnabled = true;
+  q.createBatch([i.id], {
+    audience: "yes",
+    mediaReviewed: true,
+    publishConsent: true,
+    spacingMinutes: 1,
+  });
+  i.status = "failed";
+  q.edit({
+    id: i.id,
+    title: "Private choice",
+    description: "",
+    audience: "yes",
+    mode: "private",
+    localTime: "",
+    mediaReviewed: true,
+  });
+  assert.equal(i.batchId, undefined);
+  assert.equal(i.mode, "private");
+  assert.equal(i.publishConsent, false);
+  assert.equal(q.state.batches[0].status, "cancelled");
+});
