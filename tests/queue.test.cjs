@@ -72,14 +72,14 @@ test("six slots respect timezone, one-hour lead and existing reservations", () =
   q.settings({ zone: "America/New_York", slots: q.state.slots });
   assert.ok(Date.parse(q.next(now)) > now + 3600000);
 });
-test("approval requires channel, audience and Shorts confirmation", async () => {
+test("approval requires channel, audience and finished-video review", async () => {
   const { q, folder } = setup();
   const p = path.join(folder, "a.mp4");
   fs.writeFileSync(p, "test");
   const i = await discover(q, p);
   assert.throws(() => q.approve(i), /Connect/);
   q.state.channel = { id: "a" };
-  assert.throws(() => q.approve(i), /Confirm/);
+  assert.throws(() => q.approve(i), /Review/);
   i.shortConfirmed = true;
   assert.throws(() => q.approve(i), /kids/);
 });
@@ -380,4 +380,69 @@ test("full-byte 308 acknowledgement is probed rather than sending an empty chunk
   await q.step();
   assert.equal(i.needsProbe, true);
   assert.ok(i.nextAttempt > Date.now());
+});
+
+test("manual file selection is persistent and works without a watched folder", async () => {
+  const { q, folder } = setup();
+  q.state.folder = "";
+  const p = path.join(folder, "manual.mp4");
+  fs.writeFileSync(p, "manual");
+  q.addFiles([p, p]);
+  await q.scan();
+  assert.equal(q.state.items.length, 0);
+  q.observed.get(p).since = 0;
+  await q.scan();
+  assert.equal(q.state.items.length, 1);
+  assert.deepEqual(new Queue(q.file, q.vault, q.api).state.manualFiles, [p]);
+});
+test("batch waits for all private processing, then reserves public times one minute apart", async () => {
+  const { q, folder } = setup();
+  for (const [n, data] of [
+    ["one.mp4", "first"],
+    ["two.mp4", "second"],
+  ]) {
+    const p = path.join(folder, n);
+    fs.writeFileSync(p, data);
+  }
+  await q.scan();
+  for (const observed of q.observed.values()) observed.since = 0;
+  await q.scan();
+  q.state.channel = { id: "channel" };
+  q.state.liveEnabled = true;
+  const id = q.createBatch(
+    q.state.items.map((i) => i.id),
+    {
+      audience: "yes",
+      spacingMinutes: 1,
+      mediaReviewed: true,
+      publishConsent: true,
+    },
+  );
+  assert.ok(id);
+  assert.ok(
+    q.state.items.every(
+      (i) =>
+        i.mode === "private" && i.status === "ready" && i.audience === "yes",
+    ),
+  );
+  const [a, b] = q.state.items;
+  a.videoId = "abcdefghijk";
+  a.status = "private";
+  q.prepareBatches();
+  assert.equal(a.mode, "private");
+  b.videoId = "lmnopqrstuv";
+  b.status = "private";
+  const now = Date.now();
+  q.prepareBatches(now);
+  assert.ok(
+    q.state.items.every(
+      (i) =>
+        i.mode === "schedule" && i.publishConsent && i.status === "processing",
+    ),
+  );
+  assert.equal(Date.parse(b.at) - Date.parse(a.at), 60000);
+  assert.ok(Date.parse(a.at) >= now + 300000);
+  const recovered = new Queue(q.file, q.vault, q.api);
+  assert.equal(recovered.state.batches[0].status, "scheduling");
+  assert.equal(recovered.state.items[0].at, a.at);
 });

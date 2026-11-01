@@ -5,6 +5,8 @@ contextBridge.exposeInMainWorld(
     [
       "state",
       "folder",
+      "addFiles",
+      "batch",
       "importClient",
       "connect",
       "disconnect",

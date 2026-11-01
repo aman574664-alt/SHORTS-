@@ -67,6 +67,14 @@ document.querySelectorAll("[data-link]").forEach((e) => {
   e.onclick = () => run("link", e.dataset.link);
 });
 $("folder").onclick = () => run("folder");
+$("addFiles").onclick = async () => {
+  const count = await run("addFiles");
+  if (count)
+    toast(
+      count +
+        " videos selected. They will appear after 30 seconds of file stability.",
+    );
+};
 $("pause").onclick = () => {
   if (!state?.liveEnabled) {
     navigate("connect");
@@ -191,7 +199,11 @@ function renderList() {
       info,
       el(
         "span",
-        i.mode === "private" ? "PRIVATE" : i.displayTime,
+        i.batchTarget && i.mode === "private"
+          ? "AFTER BATCH"
+          : i.mode === "private"
+            ? "PRIVATE"
+            : i.displayTime,
         "video-date",
       ),
       el(
@@ -220,7 +232,7 @@ function fillEditor(i) {
   $("audience").value = i.audience;
   $("mode").value = i.mode;
   $("postingTime").value = i.localTime;
-  $("shortConfirmed").checked = !!i.shortConfirmed;
+  $("shortConfirmed").checked = !!i.mediaReviewed || !!i.shortConfirmed;
   $("timeLabel").textContent = "POSTING TIME · " + state.zone.toUpperCase();
   $("thumbnailName").textContent =
     i.thumbnail?.split(/[\\/]/).pop() || "Optional · JPG / PNG, up to 2 MB";
@@ -328,7 +340,7 @@ async function saveEditor() {
     audience: $("audience").value,
     mode: $("mode").value,
     localTime: $("postingTime").value,
-    shortConfirmed: $("shortConfirmed").checked,
+    mediaReviewed: $("shortConfirmed").checked,
   });
   if (result !== false) {
     dirty = false;
@@ -415,6 +427,24 @@ async function refresh() {
       );
       $("metrics").append(m);
     }
+    const batch = state.batches?.find((b) =>
+      ["uploading", "scheduling"].includes(b.status),
+    );
+    $("batchSummary").hidden = !batch;
+    if (batch) {
+      const items = batch.ids.map((id) => state.items.find((i) => i.id === id));
+      const processed = items.filter((i) =>
+        ["private", "scheduled", "published"].includes(i?.status),
+      ).length;
+      $("batchSummary").textContent =
+        "Batch: " +
+        processed +
+        "/" +
+        items.length +
+        " videos processed. Public posts will be " +
+        batch.spacingMinutes +
+        " minute(s) apart, starting after the whole batch is ready.";
+    }
     renderList();
     if (!dirty && editing) redrawEditor();
   } catch (e) {
@@ -425,3 +455,18 @@ async function refresh() {
 }
 refresh();
 setInterval(refresh, 2500);
+
+$("batchButton").onclick = () => $("batchDialog").showModal();
+$("closeBatch").onclick = () => $("batchDialog").close();
+$("batchForm").onsubmit = async (e) => {
+  e.preventDefault();
+  const result = await run("batch", {
+    spacingMinutes: Number($("batchSpacing").value),
+    audience: $("batchAudience").value,
+    mediaReviewed: $("batchReview").checked,
+  });
+  if (result !== false) {
+    $("batchDialog").close();
+    toast("Batch approved. Resume the queue to start uploads.");
+  }
+};

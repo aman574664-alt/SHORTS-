@@ -11,3 +11,7 @@ client_secret*.json
 .uploader.lock
 __pycache__/
 YouTube_Auto_Uploader_Windows/**/incoming/
+
+# Private local Google client downloads and trial media
+api yt/
+trail vid/

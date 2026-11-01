@@ -25,14 +25,20 @@ Google's `youtube.force-ssl` scope lets the app read channel uploads, upload vid
 ## Add and publish videos
 
 1. Choose a folder containing finished MP4, MOV, WEBM, MKV, M4V or AVI videos. External drives and locally synced Google Drive folders work when they are available to Windows.
-2. After 30 seconds of unchanged size and modification time, videos appear as **Needs review**. Existing files are also discovered. For a slow copy/export that might pause, use a `.part` ending until fully complete, then rename to the real video extension. Stability checks cannot prove that a remote sync has finished.
+2. You can also use **Add videos** to select individual files without moving them. After 30 seconds of unchanged size and modification time, videos appear as **Needs review**. Existing files are also discovered. For a slow copy/export that might pause, use a `.part` ending until fully complete, then rename to the real video extension. Stability checks cannot prove that a remote sync has finished.
 3. Click a video to edit title, description, audience, thumbnail and posting time. All posting-time inputs use the timezone displayed next to them, initially **Asia/Kolkata**.
-4. Confirm that your video is square/vertical and no longer than three minutes. The app does not transcode or inspect dimensions; YouTube decides Shorts classification.
+4. Confirm that you reviewed the finished video and its audience. Square/vertical videos up to three minutes qualify as Shorts; landscape videos can still be uploaded as regular YouTube videos. The app does not transcode your files.
 5. Choose **Keep private** or **Schedule public release**. Save details and approve the video. Scheduling asks for explicit public-release confirmation.
 6. Click **Resume queue**. Uploads are initially private. The app polls processing and only then submits the approved future `publishAt`. A past or too-close time is blocked rather than published immediately.
 7. Keep the computer awake, the app open and the internet connected until the video is **Scheduled**. YouTube can publish an accepted schedule while your PC is off. Closing the app stops local uploads; saved sessions resume after reopening.
 
 Six daily slots are configurable in **Daily schedule**. New videos get the next unoccupied slot at least an hour ahead. The app does not manufacture six videos or guarantee six posts if content is missing, not reviewed, restricted, or late. Already assigned videos keep their times when settings change. The editor can change an uploaded video's future schedule with confirmation. For other uploaded metadata edits, use YouTube Studio.
+
+## Batch release (including a one-minute test)
+
+After connecting, adding videos and enabling uploads, click **Schedule pending videos**. Choose the audience for all pending videos, set the minutes between public posts, review the batch, then approve. Resume the queue.
+
+Batch videos upload privately first. Only when every non-cancelled batch video has finished processing does the app reserve public timestamps, beginning at least five minutes in the future. A one-minute interval means publication timestamps differ by 60 seconds; it does not mean large files upload in one minute. The plan, consent and timestamps survive restarts. A failed or uncertain item holds the batch until resolved. YouTube controls the actual processing and public release timing.
 
 ## Controls and recovery
 
@@ -72,3 +78,5 @@ Live Google authorization, upload, thumbnail acceptance and public publication s
 - [Thumbnail support](https://support.google.com/youtube/answer/72431) and [thumbnail API](https://developers.google.com/youtube/data/reference/rest/v3/thumbnails/set): channel verification and current Shorts support matter. Studio functionality does not guarantee API support.
 
 This application uses YouTube API Services. See [YouTube Terms](https://www.youtube.com/t/terms) and [Google Privacy Policy](https://policies.google.com/privacy).
+
+Local connection diagnostic: `scripts/connect-channel.cjs` uses the same encrypted Windows credential store and opens the system browser for user-completed OAuth. It never prints tokens. The optional `--login-hint` can point sign-in at an account already listed as a Google test user. `scripts/prepare-batch.cjs` requires explicit folder, audience, and public one-minute approval flags and only prepares the persistent queue; the normal app performs transfers. Do not run these helpers while the desktop app is writing its library.

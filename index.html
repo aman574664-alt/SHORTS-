@@ -69,14 +69,19 @@
             >
           </div>
           <div class="buttons">
+            <button id="addFiles" class="secondary">Add videos ＋</button>
             <button id="folder" class="secondary">
               Choose folder <span>＋</span></button
             ><button id="pause" class="primary">Resume queue →</button>
           </div>
         </div>
+        <p id="batchSummary" class="alert" hidden></p>
         <div id="metrics" class="metrics"></div>
         <div class="section-heading">
           <h2>The lineup<span id="total">00</span></h2>
+          <button id="batchButton" class="secondary">
+            Schedule pending videos ↗
+          </button>
           <div class="filters" id="filters">
             <button data-filter="active" class="selected">In progress</button
             ><button data-filter="all">All videos</button
@@ -345,8 +350,8 @@
         >
           Use next free daily slot ↗</button
         ><label class="check"
-          ><input type="checkbox" id="shortConfirmed" /> I checked: this is
-          square or vertical and no more than 3 minutes.</label
+          ><input type="checkbox" id="shortConfirmed" /> I reviewed this
+          finished video and its audience settings.</label
         >
         <div class="thumbnail-row">
           <button type="button" id="thumbnail" class="secondary">
@@ -355,6 +360,45 @@
         </div>
         <div id="editActions" class="drawer-actions"></div>
         <small id="uploadedNote"></small>
+      </form>
+    </dialog>
+    <dialog id="batchDialog">
+      <form id="batchForm">
+        <div class="drawer-top">
+          <span class="eyebrow">BATCH SCHEDULE</span
+          ><button
+            type="button"
+            id="closeBatch"
+            class="icon-button"
+            aria-label="Close batch setup"
+          >
+            ×
+          </button>
+        </div>
+        <h2>One queue.<br />A steady release.</h2>
+        <p class="muted">
+          Applies to all pending videos. Uploads stay private until the whole
+          batch finishes processing. Public posts then begin at least five
+          minutes later.
+        </p>
+        <label for="batchSpacing">MINUTES BETWEEN PUBLIC POSTS</label
+        ><input
+          id="batchSpacing"
+          type="number"
+          min="1"
+          max="1440"
+          value="1"
+          required
+        /><label for="batchAudience">AUDIENCE FOR THIS BATCH</label
+        ><select id="batchAudience">
+          <option value="unset">Choose audience</option>
+          <option value="yes">Made for kids</option>
+          <option value="no">Not made for kids</option></select
+        ><label class="check"
+          ><input type="checkbox" id="batchReview" required />I reviewed these
+          finished videos and their audience setting. Landscape videos may be
+          regular YouTube videos.</label
+        ><button class="primary" type="submit">Approve batch schedule →</button>
       </form>
     </dialog>
     <script src="ui.js"></script>

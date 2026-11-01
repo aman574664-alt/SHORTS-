@@ -50,6 +50,7 @@ else
             "settings",
             "enable",
             "importClient",
+            "batch",
           ].includes(name);
           if (exclusive && (queue.busy || queue.userBusy))
             return {
@@ -86,6 +87,24 @@ else
         connecting: auth.connecting,
         startup: app.getLoginItemSettings().openAtLogin,
       }));
+      handle("addFiles", async () => {
+        const r = await dialog.showOpenDialog(window, {
+          title: "Add finished videos",
+          properties: ["openFile", "multiSelections"],
+          filters: [
+            {
+              name: "Videos",
+              extensions: ["mp4", "mov", "webm", "mkv", "m4v", "avi"],
+            },
+          ],
+        });
+        if (!r.canceled) {
+          queue.addFiles(r.filePaths);
+          await queue.scan();
+          return r.filePaths.length;
+        }
+        return 0;
+      });
       handle("folder", async () => {
         const r = await dialog.showOpenDialog(window, {
           properties: ["openDirectory"],
@@ -164,6 +183,28 @@ else
         });
       });
       handle("edit", (v) => queue.edit(v));
+      handle("batch", async (v) => {
+        const ids = queue.state.items
+          .filter((i) => i.status === "pending" && !i.initiated)
+          .map((i) => i.id);
+        if (!ids.length) throw Error("Add pending videos first.");
+        if (
+          !(await confirm(
+            "Approve batch public release",
+            "Upload " +
+              ids.length +
+              " videos and schedule them " +
+              v.spacingMinutes +
+              " minute(s) apart?",
+            "All videos first upload privately. After every video finishes processing, public posting starts at least five minutes later. Audience: " +
+              (v.audience === "yes" ? "Made for kids" : "Not made for kids") +
+              ".",
+            "Approve batch",
+          ))
+        )
+          return false;
+        return queue.createBatch(ids, { ...v, publishConsent: true });
+      });
       handle("reschedule", async (v) => {
         if (!queue.state.liveEnabled)
           throw Error(
