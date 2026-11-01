@@ -288,3 +288,96 @@ test("atomic queue persistence and backup fallback", () => {
   fs.writeFileSync(q.file, "truncated");
   assert.equal(read(q.file, {}).folder, "one");
 });
+
+test("native OAuth flow uses PKCE, rejects wrong callback state and refreshes access", async () => {
+  const { vault } = setup();
+  let challenge;
+  let grants = [];
+  const auth = new Auth(
+    vault,
+    async (address) => {
+      const url = new URL(address);
+      challenge = url.searchParams.get("code_challenge");
+      assert.equal(url.hostname, "accounts.google.com");
+      const redirect = new URL(url.searchParams.get("redirect_uri"));
+      assert.equal(redirect.hostname, "127.0.0.1");
+      redirect.search = new URLSearchParams({
+        state: "wrong",
+        code: "dummy",
+      }).toString();
+      assert.equal((await fetch(redirect)).status, 400);
+      redirect.search = new URLSearchParams({
+        state: url.searchParams.get("state"),
+        code: "dummy",
+      }).toString();
+      assert.equal((await fetch(redirect)).status, 200);
+    },
+    async (_, opts) => {
+      const p = opts.body;
+      grants.push(p.get("grant_type"));
+      if (p.get("grant_type") === "authorization_code") {
+        assert.equal(
+          require("node:crypto")
+            .createHash("sha256")
+            .update(p.get("code_verifier"))
+            .digest("base64url"),
+          challenge,
+        );
+      }
+      return new Response(
+        JSON.stringify({
+          access_token: "synthetic-token",
+          refresh_token: "synthetic-refresh",
+          expires_in: 3600,
+        }),
+        { status: 200 },
+      );
+    },
+  );
+  auth.importClient(
+    JSON.stringify({
+      installed: {
+        client_id: "x.apps.googleusercontent.com",
+        client_secret: "dummy",
+      },
+    }),
+  );
+  await auth.connect();
+  assert.equal(await auth.access(), "synthetic-token");
+  vault.set("tokens", { ...vault.get("tokens"), expires: 0 });
+  assert.equal(await auth.access(), "synthetic-token");
+  assert.deepEqual(grants, ["authorization_code", "refresh_token"]);
+});
+test("expired session reconciles existing upload without a second initiation", async () => {
+  const { q, folder, vault, api } = setup();
+  const p = path.join(folder, "a.mp4");
+  fs.writeFileSync(p, "test");
+  const i = await discover(q, p);
+  approve(q, i);
+  i.initiated = true;
+  i.needsProbe = true;
+  vault.set("session:" + i.id, "expired");
+  api.probe = async () => {
+    throw new ApiError("Expired session", false, true);
+  };
+  api.reconcile = async () => ({ id: "abcdefghijk" });
+  api.initiate = async () => assert.fail("must not start another copy");
+  await q.step();
+  assert.equal(i.status, "processing");
+  assert.equal(i.videoId, "abcdefghijk");
+});
+test("full-byte 308 acknowledgement is probed rather than sending an empty chunk", async () => {
+  const { q, folder, vault, api } = setup();
+  const p = path.join(folder, "a.mp4");
+  fs.writeFileSync(p, "test");
+  const i = await discover(q, p);
+  approve(q, i);
+  i.initiated = true;
+  i.needsProbe = true;
+  vault.set("session:" + i.id, "session");
+  api.probe = async () => incomplete(i.size);
+  api.chunk = async () => assert.fail("must not send empty data");
+  await q.step();
+  assert.equal(i.needsProbe, true);
+  assert.ok(i.nextAttempt > Date.now());
+});
