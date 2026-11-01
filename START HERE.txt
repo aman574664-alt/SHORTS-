@@ -1,0 +1,21 @@
+SHORTS STUDIO — START HERE
+
+1. Double-click ShortsScheduler.exe in this folder.
+2. Open Connect YouTube in the left sidebar.
+3. Follow the Google setup links. Create a free Google Desktop OAuth app,
+   download its JSON, import it, and sign in with your own Google account.
+4. Enable reviewed uploads when ready.
+5. Choose a folder of finished videos. Wait 30 seconds after copying.
+6. Click a video, save its details and audience, then approve it.
+7. Resume the queue. Keep the app open and your computer awake while uploading.
+
+Choose Keep private for a private upload or Schedule public release for a future
+public post. Scheduling asks for confirmation. Missed times are blocked.
+YouTube can publish an accepted schedule while your PC is off.
+
+Your original videos are never deleted or moved.
+Keep all files in this application folder together.
+No Python, paid hosting, or paid AI subscription is needed.
+
+This build has been tested with mocked YouTube responses. Real sign-in/upload
+requires your own channel and an explicitly approved first live test.

@@ -1,0 +1,10 @@
+client_secret.json
+token.json
+*.sqlite3
+*.sqlite3-journal
+*.sqlite3-wal
+*.sqlite3-shm
+uploader.log
+.uploader.lock
+__pycache__/
+incoming/

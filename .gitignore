@@ -1,5 +1,13 @@
 node_modules/
 release/
+output/
+*.zip
 *.log
 *credentials*.json
 *token*.json
+client_secret*.json
+*.bin
+*.sqlite3*
+.uploader.lock
+__pycache__/
+YouTube_Auto_Uploader_Windows/**/incoming/

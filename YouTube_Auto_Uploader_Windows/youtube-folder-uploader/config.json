@@ -1,0 +1,7 @@
+{
+  "watch_folder": "incoming",
+  "privacy_status": "private",
+  "description": "Uploaded automatically from my Windows PC.",
+  "stable_seconds": 60,
+  "scan_every_seconds": 10
+}

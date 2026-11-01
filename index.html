@@ -1,1 +1,362 @@
-<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'"><title>Shorts Scheduler</title><style>*{box-sizing:border-box}body{font:15px 'Segoe UI',sans-serif;background:#f4f6fb;color:#18233c;margin:0}header{background:#172443;color:white;padding:28px 44px}header h1{margin:0 0 8px}header p{margin:0;color:#becbe4}main,.wrap{max-width:1100px;margin:auto;padding:24px}h2{font-size:20px}button{font:inherit;padding:11px 18px;border-radius:8px;border:0;background:#365bda;color:white;cursor:pointer}button:hover{background:#2848b7}input,textarea,select{font:inherit;padding:10px;border:1px solid #cbd3e1;border-radius:7px;width:100%;background:white;color:#18233c}label{display:block;font-weight:600;margin:12px 0 5px}textarea{min-height:80px}.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}.card,article{background:white;border:1px solid #e0e5ef;border-radius:14px;padding:22px;margin-bottom:18px}.step{color:#365bda;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:1px}.muted,small{color:#65728a;line-height:1.6}small{display:block;overflow-wrap:anywhere}.notice{background:#fff3d6;border:1px solid #ecd39b;padding:15px;border-radius:9px;margin-bottom:20px}.toolbar{display:flex;justify-content:space-between;align-items:center}.actions{display:flex;gap:10px;margin-top:18px}.fields{display:grid;grid-template-columns:1fr 1fr;gap:14px}.empty{text-align:center;padding:48px}.badge{font-size:12px;border-radius:20px;padding:6px 12px;background:#e8edff;color:#365bda}#message{color:#a23920}#startup{width:auto}details{margin-top:20px}summary{cursor:pointer;font-weight:600}.count{font-size:36px;font-weight:700}.stats{display:flex;gap:12px;margin:20px 0}.stats span{background:white;border-radius:10px;padding:12px 18px;flex:1;border:1px solid #e0e5ef}@media(max-width:800px){.steps,.fields{grid-template-columns:1fr}.stats{flex-wrap:wrap}}</style></head><body><header><h1>Shorts Scheduler</h1><p>Your videos. Six daily posting times. One simple queue.</p></header><div class="wrap"><div class="notice"><b>Demo mode</b> — YouTube uploading is not implemented yet. Statuses below are simulations; nothing is sent or published.</div><div class="steps"><section class="card"><div class="step">Step 1 · Your channel</div><h2>Connect YouTube</h2><p class="muted">Real channel connection is still being built. You do not need to enter a Google password here.</p><span class="badge">Not connected · unavailable</span></section><section class="card"><div class="step">Step 2 · Your videos</div><h2>Choose a folder</h2><p class="muted">Use your computer, external drive, or a locally synced Drive folder.</p><button id="folder">Choose video folder</button><small id="location"></small></section><section class="card"><div class="step">Step 3 · Your schedule</div><h2>Six times a day</h2><p class="muted">Default timezone: India. Edit your daily times below, then review each video's details.</p><button id="showSettings">Edit posting times</button></section></div><section class="card" id="settingsPanel" hidden><h2>Daily posting times</h2><label for="zone">Timezone</label><input id="zone" value="Asia/Kolkata"><label for="slots">Six times, separated by commas (24-hour clock)</label><input id="slots" value="08:00,10:30,13:00,15:30,18:00,20:30"><label><input type="checkbox" id="startup"> Open automatically when I sign in to Windows</label><button id="settings">Save schedule</button><p class="muted">New times apply to videos added after you save. Existing videos keep their assigned time.</p></section><div id="stats" class="stats"></div><div class="toolbar"><h2>Your video queue</h2><button id="pause">Start demo queue</button></div><p id="warning" role="alert"></p><p id="message" role="status"></p><div id="items"></div><details class="card"><summary>How to use this preview</summary><ol><li>Choose a folder containing finished MP4, MOV, MKV or WebM files.</li><li>Wait at least 30 seconds after copying. Keep this window open.</li><li>Review each title, description, audience and posting time. Press Save details.</li><li>Press Start demo queue to simulate uploading.</li></ol><p>Original videos are never moved or deleted. The app must be open for scanning. Once a future real upload is scheduled on YouTube, YouTube can publish while your PC is off.</p></details></div><script src="ui.js"></script></body></html>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; frame-src 'none'"
+    />
+    <title>Shorts Scheduler</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="brand-mark">✳</span><span>SHORTS<br />STUDIO.</span>
+      </div>
+      <div class="edition">LOCAL EDITION / WINDOWS</div>
+      <nav aria-label="Main navigation">
+        <button data-page="queue" class="nav active">
+          <span>01</span> Video queue <b id="navCount">0</b></button
+        ><button data-page="schedule" class="nav">
+          <span>02</span> Daily schedule</button
+        ><button data-page="connect" class="nav">
+          <span>03</span> Connect YouTube</button
+        ><button data-page="help" class="nav">
+          <span>04</span> Quick guide
+        </button>
+      </nav>
+      <div class="side-bottom">
+        <span class="dot" id="channelDot"></span
+        ><b id="channelName">Your channel awaits.</b
+        ><small id="channelStatus">Connect once. Create often.</small
+        ><button class="text-button" data-link="studio">
+          Open YouTube Studio ↗
+        </button>
+        <div class="edition">
+          YOUR FILES STAY YOURS.<br />NO CLOUD HOSTING REQUIRED.
+        </div>
+      </div>
+    </aside>
+    <main>
+      <header class="topbar">
+        <span id="pageLabel">YOUR DAILY PUBLISHING DESK</span
+        ><span class="connection" id="connection">○ NOT CONNECTED</span>
+      </header>
+      <div id="toast" role="status" hidden></div>
+      <div id="warning" class="alert" role="alert" hidden></div>
+      <section id="page-queue" class="page">
+        <div class="hero">
+          <div>
+            <div class="eyebrow">A LITTLE CONSISTENCY GOES A LONG WAY.</div>
+            <h1>Make room<br />for <em>what’s next.</em></h1>
+            <p class="subtitle">
+              Finished videos in. A considered schedule out.
+            </p>
+          </div>
+          <div class="hero-number">
+            <strong>06<span>↗</span></strong>
+            <div>POSTING SLOTS / DAY</div>
+          </div>
+        </div>
+        <div class="control-strip">
+          <div>
+            <span class="dot" id="queueDot"></span
+            ><b id="queueState">QUEUE PAUSED</b
+            ><small id="folderPath"
+              >Choose where your finished videos live.</small
+            >
+          </div>
+          <div class="buttons">
+            <button id="folder" class="secondary">
+              Choose folder <span>＋</span></button
+            ><button id="pause" class="primary">Resume queue →</button>
+          </div>
+        </div>
+        <div id="metrics" class="metrics"></div>
+        <div class="section-heading">
+          <h2>The lineup<span id="total">00</span></h2>
+          <div class="filters" id="filters">
+            <button data-filter="active" class="selected">In progress</button
+            ><button data-filter="all">All videos</button
+            ><button data-filter="history">History</button>
+          </div>
+        </div>
+        <div id="videoList"></div>
+        <div class="footnote">
+          <span>30 seconds of file stability before review.</span
+          ><span id="timezoneFoot">ASIA/KOLKATA</span>
+        </div>
+      </section>
+      <section id="page-schedule" class="page" hidden>
+        <div class="eyebrow">BUILD A RHYTHM.</div>
+        <h1>Six times.<br /><em>Your time.</em></h1>
+        <p class="subtitle">
+          New videos get the next free slot, at least one hour ahead.
+        </p>
+        <form id="scheduleForm" class="paper-form">
+          <label for="zone">YOUR TIMEZONE</label
+          ><input
+            id="zone"
+            value="Asia/Kolkata"
+            placeholder="Asia/Kolkata"
+            required
+          /><small
+            >Use a timezone name, for example Asia/Kolkata, Europe/London, or
+            America/New_York.</small
+          >
+          <div id="slotInputs" class="slot-inputs"></div>
+          <label class="check"
+            ><input id="startup" type="checkbox" /> Open Shorts Studio when I
+            sign in to Windows</label
+          ><button class="primary" type="submit">Save daily schedule →</button>
+          <p class="muted">
+            Changes apply to newly added videos. Existing videos keep their
+            times.<br />Keep your PC awake and online while uploading. Once
+            YouTube accepts a schedule, it can publish while your PC is off.
+          </p>
+        </form>
+      </section>
+      <section id="page-connect" class="page" hidden>
+        <div class="eyebrow">ONE CHANNEL. YOUR CONTROL.</div>
+        <h1>Connect.<br /><em>Then create.</em></h1>
+        <p class="subtitle" id="connectSubtitle">
+          Sign in securely with Google in your own browser.
+        </p>
+        <div class="connect-layout">
+          <div>
+            <div class="setup-step">
+              <span>01</span>
+              <div>
+                <h3>Prepare your Google app</h3>
+                <p>
+                  YouTube requires a free Google Cloud project for personal
+                  uploader apps. Enable the YouTube Data API, add yourself as a
+                  test user, then create an OAuth client of type
+                  <b>Desktop app</b>.
+                </p>
+                <div class="buttons">
+                  <button data-link="cloud" class="secondary">
+                    Enable YouTube API ↗</button
+                  ><button data-link="consent" class="text-button">
+                    Test users ↗</button
+                  ><button data-link="oauth" class="text-button">
+                    Create Desktop client ↗
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="setup-step">
+              <span>02</span>
+              <div>
+                <h3>Import the downloaded JSON</h3>
+                <p>
+                  Choose the OAuth client file downloaded from Google. The app
+                  protects its local copy with your Windows account.
+                </p>
+                <button id="importClient" class="secondary">
+                  Choose Google app JSON ＋</button
+                ><small id="clientStatus">No Google app imported yet.</small>
+              </div>
+            </div>
+            <div class="setup-step">
+              <span>03</span>
+              <div>
+                <h3>Connect your YouTube channel</h3>
+                <p>
+                  Google will show the requested permissions. Choose the account
+                  and channel you want to use. This app never asks for your
+                  password.
+                </p>
+                <div class="buttons">
+                  <button id="connect" class="primary">Connect YouTube ↗</button
+                  ><button id="disconnect" class="text-button" hidden>
+                    Disconnect locally
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="setup-step">
+              <span>04</span>
+              <div>
+                <h3>Allow reviewed uploads</h3>
+                <p>
+                  Uploads stay off until you enable them. Every video needs your
+                  review. Public schedules get a separate confirmation.
+                </p>
+                <button id="enable" class="primary">
+                  Enable real uploads →</button
+                ><small id="liveStatus">Uploads are disabled.</small>
+              </div>
+            </div>
+          </div>
+          <aside class="connection-note">
+            <span class="brand-mark">✳</span>
+            <h2>Your channel.<br />Your permission.</h2>
+            <p>
+              Free to run on your computer.<br />No paid hosting. No AI
+              subscription.
+            </p>
+            <hr />
+            <p>
+              The Google permission allows reading and managing YouTube videos
+              so the app can upload, reconcile interrupted attempts, and
+              schedule publication. The app never deletes your videos.
+            </p>
+            <p>
+              Tokens and upload-session addresses are encrypted locally with
+              Windows protection. Disconnecting clears the local token. You can
+              revoke access in your Google account.
+            </p>
+            <p class="muted">
+              Testing-mode Google apps may need reconnection after seven days.
+              Google verification and channel restrictions still apply.
+            </p>
+          </aside>
+        </div>
+      </section>
+      <section id="page-help" class="page" hidden>
+        <div class="eyebrow">LESS ADMIN. MORE MAKING.</div>
+        <h1>Your next Short,<br /><em>in a few steps.</em></h1>
+        <div class="help-grid">
+          <section>
+            <h3>01 / Connect</h3>
+            <p>
+              Open Connect YouTube. Set up your free Google Desktop app once,
+              import its JSON, sign in, then enable reviewed uploads.
+            </p>
+          </section>
+          <section>
+            <h3>02 / Add finished videos</h3>
+            <p>
+              Choose one folder on your computer, external drive, or a locally
+              synced Google Drive folder. Wait 30 seconds after the copy
+              finishes. For slow syncs, use a .part ending until the file is
+              complete, then rename it.
+            </p>
+          </section>
+          <section>
+            <h3>03 / Review & approve</h3>
+            <p>
+              Click a video. Edit its title, description, audience and time.
+              Save details, then approve the upload. Choose Private to upload
+              without publishing, or Schedule for a future public release.
+            </p>
+          </section>
+          <section>
+            <h3>04 / Leave the upload running</h3>
+            <p>
+              Resume the queue. Keep the computer awake and online until YouTube
+              accepts the upload and schedule. A missed time is blocked, never
+              changed to Publish now.
+            </p>
+          </section>
+          <section>
+            <h3>What counts as a Short?</h3>
+            <p>
+              Square or vertical videos up to three minutes qualify under
+              YouTube’s current rules. YouTube makes the final classification.
+              This app does not crop, transcode, or verify video dimensions.
+            </p>
+          </section>
+          <section>
+            <h3>Interrupted or uncertain?</h3>
+            <p>
+              Chunks resume in the same session. Expired or uncertain sessions
+              are checked against your channel before any retry. “Needs review”
+              blocks another copy. Never clear history just to retry.
+            </p>
+          </section>
+          <section>
+            <h3>Thumbnails</h3>
+            <p>
+              Choose a JPG or PNG under 2 MB before upload. The app tries
+              YouTube’s thumbnail API. Shorts support depends on the channel and
+              API; if rejected, use YouTube Studio.
+            </p>
+          </section>
+          <section>
+            <h3>Keep it local</h3>
+            <p>
+              Closing the app stops uploads and scanning. History stays saved.
+              Pausing stops new chunks after the current request; already
+              scheduled videos still publish on YouTube. Cancel an uploaded item
+              to remove its schedule and keep it private.
+            </p>
+          </section>
+        </div>
+        <div class="legal">
+          <button data-link="terms" class="text-button">
+            YouTube Terms of Service ↗</button
+          ><button data-link="privacy" class="text-button">
+            Google Privacy Policy ↗
+          </button>
+          <p>
+            This app uses YouTube API Services. You are responsible for your
+            content and audience settings.
+          </p>
+        </div>
+      </section>
+    </main>
+    <dialog id="editor">
+      <form id="editForm">
+        <div class="drawer-top">
+          <span class="eyebrow">VIDEO DETAILS</span
+          ><button
+            type="button"
+            id="closeEditor"
+            class="icon-button"
+            aria-label="Close video details"
+          >
+            ×
+          </button>
+        </div>
+        <div id="editorStatus" class="status-tag"></div>
+        <h2 id="editorHeading">Make it yours.</h2>
+        <small id="editorPath"></small>
+        <p id="editorError" class="alert" hidden></p>
+        <label for="title">TITLE</label
+        ><input id="title" maxlength="100" required /><label for="description"
+          >DESCRIPTION</label
+        ><textarea id="description" maxlength="5000" rows="5"></textarea>
+        <div class="fields">
+          <div>
+            <label for="audience">AUDIENCE</label
+            ><select id="audience">
+              <option value="unset">Choose an audience</option>
+              <option value="no">Not made for kids</option>
+              <option value="yes">Made for kids</option>
+            </select>
+          </div>
+          <div>
+            <label for="mode">VISIBILITY</label
+            ><select id="mode">
+              <option value="schedule">Schedule public release</option>
+              <option value="private">Keep private</option>
+            </select>
+          </div>
+        </div>
+        <label for="postingTime" id="timeLabel">POSTING TIME</label
+        ><input id="postingTime" type="datetime-local" /><button
+          type="button"
+          id="nextSlot"
+          class="text-button"
+        >
+          Use next free daily slot ↗</button
+        ><label class="check"
+          ><input type="checkbox" id="shortConfirmed" /> I checked: this is
+          square or vertical and no more than 3 minutes.</label
+        >
+        <div class="thumbnail-row">
+          <button type="button" id="thumbnail" class="secondary">
+            Choose thumbnail ＋</button
+          ><small id="thumbnailName">Optional · JPG / PNG, up to 2 MB</small>
+        </div>
+        <div id="editActions" class="drawer-actions"></div>
+        <small id="uploadedNote"></small>
+      </form>
+    </dialog>
+    <script src="ui.js"></script>
+  </body>
+</html>

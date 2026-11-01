@@ -1,12 +1,12 @@
 {
   "name": "shorts-scheduler",
-  "version": "1.0.0",
-  "description": "",
+  "version": "2.0.0",
+  "description": "Local Windows YouTube uploader and six-slot scheduler",
   "main": "main.cjs",
   "scripts": {
     "start": "electron .",
-    "test": "node --test",
-    "build": "electron-packager . ShortsScheduler --platform=win32 --arch=x64 --out=release --overwrite"
+    "test": "node --test tests/*.test.cjs",
+    "build": "node scripts/package.cjs"
   },
   "keywords": [],
   "author": "",
@@ -17,6 +17,6 @@
     "luxon": "^3.7.2"
   },
   "devDependencies": {
-    "electron-packager": "^17.1.2"
+    "prettier": "^3.9.10"
   }
 }
